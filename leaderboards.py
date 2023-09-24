@@ -43,13 +43,21 @@ def generate_leaderboard():
     return leaderboard_message
 
 def display_battle_leaderboard(battle_id: str):
-    battle_data = battles[battle_id]
-    print(battle_data)
-    
+    print(f"[DEBUG] Displaying leaderboard for battle_id: {battle_id}")  # Debug line 1
+    print(f"[DEBUG] Current battles state: {battles}")  # Debug line 2
+    print(f"[DEBUG] display_battle_leaderboard called with battle_id: {battle_id}")  # Add this line
+    battle_data = battles.get(battle_id, {})
+    print(f"[DEBUG] battle_data: {battle_data}")  # Add this line for debugging
+
+    if "participants" in battle_data and battle_data["participants"] is not None:
+        sorted_participants = sorted(battle_data["participants"].items(), key=lambda x: x[1]["score"], reverse=True)
+        print(f"[DEBUG] Sorted participants: {sorted_participants}")  # Add this line for debugging
+    else:
+        return "No participants found!"
+
     sorted_participants = sorted(battle_data["participants"].items(), key=lambda x: x[1]["score"], reverse=True)
-    
     leaderboard_text = "Результаты баттла:\n"
     for idx, (user_id, user_data) in enumerate(sorted_participants):
         leaderboard_text += f"{idx + 1}. {user_data['full_name']} - {user_data['score']} points\n"
-    
+
     return leaderboard_text

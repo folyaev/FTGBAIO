@@ -1,7 +1,8 @@
 from enum import Enum
 
 last_entries = {}
-battles = {}  # This will store ongoing battles
+battles = {}
+current_phrases = {}
 
 class Command(Enum):
     PLAY = "play"

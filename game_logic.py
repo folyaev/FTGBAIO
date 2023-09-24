@@ -16,10 +16,9 @@ def get_random_phrase():
 
 def in_battle(user_id):
     for battle_data in battles.values():
-        if user_id in battle_data["participants"]:
+        if "participants" in battle_data and user_id in battle_data["participants"]:
             return True
     return False
-
 
 def get_random_challenge():
     with open(CHALLENGES_PATH, "r", encoding="utf-8") as file:
@@ -47,6 +46,7 @@ def start_battle():
 
 
 def is_valid_response(user_message: str, current_phrase: str, challenge: bool = False) -> bool:
+    print("[DEBUG] is_valid_response() function called.")
     print(f"[DEBUG] Checking validation for response '{user_message}' against challenge '{current_phrase}'")
     
     # If it's a challenge, we only check if the user message is not empty
