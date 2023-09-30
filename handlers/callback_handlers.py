@@ -17,7 +17,10 @@ async def handle_play(query, user_id):
     phrase = get_random_phrase()
     current_phrases[chat_id] = (phrase, False)
     keyboard = get_change_phrase_keyboard()
-    await query.message.answer(phrase, reply_markup=keyboard, parse_mode='HTML')
+
+    # Capture the message_id of the sent message
+    sent_message = await query.message.answer(phrase, reply_markup=keyboard, parse_mode='HTML')
+    battles[chat_id]['current_phrase_message_id'] = sent_message.message_id
 
 async def handle_change_phrase(query, user_id):
     chat_id = query.message.chat.id
