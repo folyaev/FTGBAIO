@@ -82,7 +82,7 @@ async def handle_show_example(query, user_id):
             ],
         ]
         reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-        await query.message.edit_text(f"Чёт никто ничего не придумал на {current_phrase}!", reply_markup=reply_markup)
+        await query.message.edit_text(f"Чёт никто ничего не придумал на <b>{current_phrase}</b>!", parse_mode="HTML", reply_markup=reply_markup)
         return
 
     # Choose a random example and display it
