@@ -7,7 +7,7 @@ from game_logic import get_random_phrase, get_random_challenge, is_valid_respons
 from ui import get_start_keyboard, get_change_phrase_keyboard
 from constants import Command, last_entries, battles, current_phrases
 from utils.utilities import clean_html_tags
-from handlers.callback_handlers import handle_play, handle_change_phrase, handle_show_example, handle_back_to_main, handle_add_challenge, handle_battle, handle_start_battle
+from handlers.callback_handlers import handle_play, handle_change_phrase, handle_show_example, handle_back_to_main, handle_add_challenge, handle_battle, handle_start_battle, handle_set_battle_duration 
 from leaderboards import generate_leaderboard
 
 router = Router()
@@ -57,6 +57,12 @@ async def message_handler(msg: Message):
     print(f"[DEBUG] Chat ID: {chat_id}")
     print(f"[DEBUG] Current battles state: {battles}")
     print(f"[DEBUG] Current phrases state: {current_phrases}")
+
+    # Check if the message is a digit (i.e., a number)
+    if msg.text.isdigit():
+        duration = int(msg.text)  # Convert the text to an integer
+        await handle_set_battle_duration(msg, user_id, duration)  # Call the new function
+        return
 
     battles.setdefault(chat_id, {})
     battles[chat_id].setdefault("participants", {})
@@ -126,5 +132,3 @@ async def message_handler(msg: Message):
         else:
             play_keyboard = get_start_keyboard()
             await msg.answer("Game Over! Try again by pressing 'Play'.", reply_markup=play_keyboard)
-
-

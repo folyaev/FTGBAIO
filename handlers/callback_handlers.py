@@ -1,26 +1,36 @@
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery, Message
 from game_logic import get_random_phrase, get_random_challenge, start_battle
 from ui import get_change_phrase_keyboard, get_battle_start_keyboard, get_battle_end_keyboard, get_start_keyboard
 from utils.utilities import clean_html_tags
 from user_data import read_user_data
 from constants import last_entries, battles, current_phrases
-import asyncio  # New import
+import asyncio
 import uuid
 import logging
+from aiogram import Bot
 
 import random
 
 logger = logging.getLogger(__name__)
 
-async def handle_play(query, user_id):
-    chat_id = query.message.chat.id
+async def handle_play(query, user_id, is_message=False):  # Added is_message parameter
+    if is_message:  # Check if is_message is True
+        chat_id = query.chat.id  # It's a Message object, so use query.chat.id
+    else:
+        chat_id = query.message.chat.id  # It's a CallbackQuery object, so use query.message.chat.id
+
     phrase = get_random_phrase()
     current_phrases[chat_id] = (phrase, False)
     keyboard = get_change_phrase_keyboard()
 
     # Capture the message_id of the sent message
-    sent_message = await query.message.answer(phrase, reply_markup=keyboard, parse_mode='HTML')
+    if is_message:  # Check if is_message is True
+        sent_message = await query.answer(phrase, reply_markup=keyboard, parse_mode='HTML')
+    else:
+        sent_message = await query.message.answer(phrase, reply_markup=keyboard, parse_mode='HTML')
+
     battles[chat_id]['current_phrase_message_id'] = sent_message.message_id
+
 
 async def handle_change_phrase(query, user_id):
     chat_id = query.message.chat.id
@@ -47,8 +57,6 @@ async def handle_add_challenge(query, user_id):
     
     # Debugging log to track the state of the 'battles' dictionary
     print(f"[DEBUG] Updated battles after adding challenge: {battles}")
-
-
 
 async def handle_show_example(query, user_id):
     print("[DEBUG] Entered handle_show_example function.")
@@ -124,7 +132,27 @@ async def handle_back_to_main(query, user_id):
         print(f"[DEBUG] Error occurred while editing the message: {e}")
 
 async def handle_battle(query, user_id):
-    await query.message.answer("Rhyme as much as you can in 3 minutes", reply_markup=get_battle_start_keyboard())
+    await query.message.answer("Please specify the battle duration in seconds:")
+
+async def handle_set_battle_duration(query, user_id, duration):
+    await handle_play(query, user_id, is_message=True)  # Passing is_message=True
+    chat_id = query.chat.id  # Since it's a message object, we use query.chat.id
+    battle_id = chat_id  # Use chat_id as the battle identifier
+
+    if battle_id not in battles or "participants" not in battles[battle_id]:
+        battles[battle_id] = {
+            "start_time": asyncio.get_event_loop().time(),
+            "participants": {}
+        }
+
+    battles[battle_id]["participants"][user_id] = {
+        "full_name": query.from_user.full_name,
+        "score": 0,
+        "responses": []
+    }
+
+    await asyncio.sleep(duration)  # Use user-specified duration
+    await end_battle(query, battle_id)
 
 async def handle_start_battle(query, user_id):
     await handle_play(query, user_id)
@@ -154,29 +182,38 @@ async def handle_back_to_menu(query, user_id):
     await query.message.answer("Welcome back to the main menu!", reply_markup=get_start_keyboard())
 
 async def end_battle(query, battle_id):
+    bot = Bot.get_current()  # Get the current Bot object
+
+    if isinstance(query, CallbackQuery):
+        chat_id = query.message.chat.id
+    elif isinstance(query, Message):
+        chat_id = query.chat.id
+
     print(f"[DEBUG] Ending battle for battle_id: {battle_id}")  # Debug line 1
     print(f"[DEBUG] Current battles state: {battles}")  # Debug line 2
 
     battle_data = battles.get(battle_id)
     if not battle_data:
-        await query.message.answer("Error ending battle!")
+        await bot.send_message(chat_id, "Error ending battle!")
         return
 
     if "participants" in battle_data:
         scores = [(data.get("full_name", "Unknown User"), data["score"]) for user, data in battle_data["participants"].items()]
         scores.sort(key=lambda x: x[1], reverse=True)
     else:
-        await query.message.answer("No participants found!")
+        await bot.send_message(chat_id, "No participants found!")
         return
 
     leaderboard = "Результаты Баттла:\n"
     for i, (full_name, score) in enumerate(scores, 1):
         leaderboard += f"{i}. {full_name}: {score}\n"
 
-    chat_id = query.message.chat.id
     if chat_id in current_phrases:
         del current_phrases[chat_id]
 
-    await query.message.answer(leaderboard, reply_markup=get_battle_end_keyboard())
+    # Delete buttons from the current phrase message
+    current_phrase_message_id = battle_data.get('current_phrase_message_id')
+    if current_phrase_message_id:
+        await bot.edit_message_reply_markup(chat_id=chat_id, message_id=current_phrase_message_id, reply_markup=None)
 
-
+    await bot.send_message(chat_id, leaderboard, reply_markup=get_battle_end_keyboard())

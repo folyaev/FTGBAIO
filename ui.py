@@ -16,9 +16,9 @@ def get_battle_start_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=[[start_btn]])
 
 def get_battle_end_keyboard():
-    again_btn = InlineKeyboardButton(text="Battle Again", callback_data="battle_again")
+    battle_btn = InlineKeyboardButton(text="Battle again", callback_data="battle")
     menu_btn = InlineKeyboardButton(text="Back to Menu", callback_data="back_to_menu")
-    return InlineKeyboardMarkup(inline_keyboard=[[again_btn, menu_btn]])
+    return InlineKeyboardMarkup(inline_keyboard=[[battle_btn, menu_btn]])
 
 # Update the get_start_keyboard function to include the 'Battle' button:
 def get_start_keyboard():
