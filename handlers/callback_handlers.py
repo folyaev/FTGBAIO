@@ -53,13 +53,17 @@ async def handle_add_challenge(query, user_id):
 async def handle_show_example(query, user_id):
     print("[DEBUG] Entered handle_show_example function.")
 
-    if user_id not in last_entries:
-        print("[DEBUG] User does not have an active phrase.")
+    chat_id = query.message.chat.id  # Get chat_id from the query message
+    
+    # Check current_phrases instead of last_entries
+    if chat_id not in current_phrases:  
+        print("[DEBUG] Chat does not have an active phrase.")
         await query.message.answer("No active phrase to show examples for!")
         return
 
-    current_phrase = clean_html_tags(last_entries[user_id][0]) if not last_entries[user_id][1] else None
-    print(f"[DEBUG] Cleaned current phrase for user: {current_phrase}")
+    current_phrase_data = current_phrases.get(chat_id)
+    current_phrase = clean_html_tags(current_phrase_data[0]) if not current_phrase_data[1] else None
+    print(f"[DEBUG] Cleaned current phrase for chat: {current_phrase}")
 
     if not current_phrase:
         await query.message.answer("No active phrase to show examples for!")
@@ -69,15 +73,14 @@ async def handle_show_example(query, user_id):
 
     # Filter the data to only include rows that match the current phrase
     matching_data = [row for row in data if row["current_phrase"] == current_phrase]
-
     print(f"[DEBUG] Number of matching examples for current phrase: {len(matching_data)}")
 
     if not matching_data:
         keyboard = [
-        [
-            InlineKeyboardButton(text="Назад", callback_data=f"back_to_main:{current_phrase}"),
-        ],
-    ]
+            [
+                InlineKeyboardButton(text="Назад", callback_data=f"back_to_main:{current_phrase}"),
+            ],
+        ]
         reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
         await query.message.edit_text(f"Чёт никто ничего не придумал на {current_phrase}!", reply_markup=reply_markup)
         return
@@ -96,7 +99,6 @@ async def handle_show_example(query, user_id):
     ]
 
     reply_markup = InlineKeyboardMarkup(inline_keyboard=keyboard)
-
     await query.message.edit_text(f"{example_text}", reply_markup=reply_markup)
 
 async def handle_back_to_main(query, user_id):
